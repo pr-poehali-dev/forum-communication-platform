@@ -1,5 +1,5 @@
-import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { 
   Card, 
   CardContent, 
@@ -9,84 +9,118 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, User, Send } from "lucide-react";
+import { Clock, User, Send, Users, MessageSquare, Trash2 } from "lucide-react";
 import Logo from "@/components/ui/logo";
 import FileUpload from "@/components/FileUpload";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-// Моковые данные для тем
-const topicsData = {
-  "1": {
-    id: "1",
-    title: "Приветственная тема",
-    categoryId: "general",
-    categoryName: "Общее обсуждение", 
+// Получение категорий
+const categoryData = {
+  general: {
+    id: "general",
+    name: "Взломы сайтов",
+    description: "Обсуждение техник проникновения и защиты веб-ресурсов",
   },
-  "2": {
-    id: "2",
-    title: "Последние новости",
-    categoryId: "general",
-    categoryName: "Общее обсуждение",
+  technology: {
+    id: "technology",
+    name: "Вирусописательство",
+    description: "Разработка вредоносного ПО и способы защиты от него",
   },
-  "3": {
-    id: "3",
-    title: "Новые телефоны 2025",
-    categoryId: "technology",
-    categoryName: "Технологии",
-  },
-  "4": {
-    id: "4",
-    title: "Язык программирования Rust",
-    categoryId: "technology",
-    categoryName: "Технологии",
-  },
-  "5": {
-    id: "5",
-    title: "Лучшие фильмы 2025",
-    categoryId: "entertainment",
-    categoryName: "Развлечения",
-  },
-  "6": {
-    id: "6",
-    title: "Новые игры на ПК",
-    categoryId: "entertainment",
-    categoryName: "Развлечения",
+  entertainment: {
+    id: "entertainment",
+    name: "СМС бомбинг",
+    description: "Обсуждение методов рассылки СМС и защита от спама",
   },
 };
 
-// Моковые данные для сообщений
-const initialMessages = {
-  "1": [
-    {
-      id: "m1",
-      author: "Аноним",
-      content: "Привет всем! Рад приветствовать вас на форуме. Давайте знакомиться!",
-      timestamp: "2025-04-24T10:30:00",
-      files: [],
-    },
-    {
-      id: "m2",
-      author: "Аноним",
-      content: "Привет! Отличный форум, мне нравится дизайн!",
-      timestamp: "2025-04-24T11:15:00",
-      files: [],
-    },
-    {
-      id: "m3",
-      author: "Аноним",
-      content: "И мне тоже. Особенно то, что не нужно регистрироваться.",
-      timestamp: "2025-04-24T12:45:00",
-      files: [
-        {
-          name: "example.jpg",
-          url: "https://picsum.photos/800/600",
-          type: "image"
-        }
-      ],
-    },
-  ],
+// Функции для работы с localStorage
+const getStoredTopics = () => {
+  try {
+    const storedTopics = localStorage.getItem('2hacker_topics');
+    return storedTopics ? JSON.parse(storedTopics) : {};
+  } catch (e) {
+    console.error('Ошибка при получении тем из хранилища:', e);
+    return {};
+  }
 };
 
-const formatDate = (dateString: string) => {
+const saveTopics = (topics) => {
+  try {
+    localStorage.setItem('2hacker_topics', JSON.stringify(topics));
+  } catch (e) {
+    console.error('Ошибка при сохранении тем в хранилище:', e);
+  }
+};
+
+const getStoredMessages = () => {
+  try {
+    const storedMessages = localStorage.getItem('2hacker_messages');
+    return storedMessages ? JSON.parse(storedMessages) : {};
+  } catch (e) {
+    console.error('Ошибка при получении сообщений из хранилища:', e);
+    return {};
+  }
+};
+
+const saveMessages = (messages) => {
+  try {
+    localStorage.setItem('2hacker_messages', JSON.stringify(messages));
+  } catch (e) {
+    console.error('Ошибка при сохранении сообщений в хранилище:', e);
+  }
+};
+
+// Система отслеживания посетителей темы
+const addViewToTopic = (topicId, categoryId) => {
+  try {
+    const now = new Date().toISOString();
+    const stats = JSON.parse(localStorage.getItem('2hacker_stats') || '{}');
+    
+    if (!stats.topics) {
+      stats.topics = {};
+    }
+    
+    if (!stats.topics[topicId]) {
+      stats.topics[topicId] = { views: 0, visitors: [], lastVisit: now, categoryId };
+    }
+    
+    // Добавляем просмотр
+    stats.topics[topicId].views += 1;
+    
+    // Генерируем уникальный ID для посетителя если его нет
+    const visitorId = localStorage.getItem('2hacker_visitor_id') || 
+      `visitor_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('2hacker_visitor_id', visitorId);
+    
+    // Добавляем посетителя если его нет в списке
+    if (!stats.topics[topicId].visitors.includes(visitorId)) {
+      stats.topics[topicId].visitors.push(visitorId);
+    }
+    
+    stats.topics[topicId].lastVisit = now;
+    
+    localStorage.setItem('2hacker_stats', JSON.stringify(stats));
+    return {
+      viewCount: stats.topics[topicId].views,
+      visitorCount: stats.topics[topicId].visitors.length
+    };
+  } catch (e) {
+    console.error('Ошибка при обновлении статистики темы:', e);
+    return { viewCount: 0, visitorCount: 0 };
+  }
+};
+
+const formatDate = (dateString) => {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
@@ -97,7 +131,7 @@ const formatDate = (dateString: string) => {
   }).format(date);
 };
 
-const generateRandomColor = (name: string) => {
+const generateRandomColor = (name) => {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -124,14 +158,82 @@ type Message = {
 
 const TopicPage = () => {
   const { topicId } = useParams<{ topicId: string }>();
-  const [messages, setMessages] = useState<Message[]>(
-    initialMessages[topicId as keyof typeof initialMessages] || []
-  );
+  const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const [topic, setTopic] = useState<any>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<MessageFile[]>([]);
-  const [nickname, setNickname] = useState("Аноним");
+  const [nickname, setNickname] = useState<string>(() => {
+    return localStorage.getItem('2hacker_nickname') || "Аноним";
+  });
+  const [stats, setStats] = useState({ viewCount: 0, visitorCount: 0 });
+  const [allTopics, setAllTopics] = useState(getStoredTopics());
+  const [allMessages, setAllMessages] = useState(getStoredMessages());
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   
-  const topic = topicId ? topicsData[topicId as keyof typeof topicsData] : null;
+  // Определяем владельца темы
+  const visitorId = localStorage.getItem('2hacker_visitor_id');
+  const isTopicOwner = topic && topic.visitorId === visitorId;
+  
+  useEffect(() => {
+    if (topicId) {
+      // Находим тему в localStorage
+      const topics = getStoredTopics();
+      let foundTopic = null;
+      let categoryId = null;
+      
+      // Сначала проверяем формат ID темы (если это новый формат с ID категории)
+      if (topicId.includes('_')) {
+        categoryId = topicId.split('_')[0];
+        if (topics[categoryId]) {
+          foundTopic = topics[categoryId].find(t => t.id === topicId);
+        }
+      } else {
+        // Если старый формат, ищем во всех категориях
+        for (const catId in topics) {
+          const found = topics[catId].find(t => t.id === topicId);
+          if (found) {
+            foundTopic = found;
+            categoryId = catId;
+            break;
+          }
+        }
+      }
+      
+      if (foundTopic) {
+        setTopic({
+          ...foundTopic,
+          categoryId,
+          categoryName: categoryData[categoryId]?.name || "Категория"
+        });
+        
+        // Получаем сообщения из localStorage
+        const storedMessages = getStoredMessages();
+        setMessages(storedMessages[topicId] || []);
+        
+        // Обновляем статистику
+        const currentStats = addViewToTopic(topicId, categoryId);
+        setStats(currentStats);
+      } else {
+        // Тема не найдена
+        navigate('/');
+      }
+    }
+  }, [topicId, navigate]);
+  
+  // Сохраняем никнейм при изменении
+  useEffect(() => {
+    localStorage.setItem('2hacker_nickname', nickname);
+  }, [nickname]);
+  
+  // Прокручиваем к последнему сообщению при добавлении нового
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const handleFileUpload = (files: MessageFile[]) => {
     setUploadedFiles([...uploadedFiles, ...files]);
@@ -146,27 +248,70 @@ const TopicPage = () => {
   const handleSendMessage = () => {
     if (newMessage.trim() === "" && uploadedFiles.length === 0) return;
 
+    const now = new Date().toISOString();
     const newMessageObj: Message = {
       id: `m${Date.now()}`,
       author: nickname,
       content: newMessage,
-      timestamp: new Date().toISOString(),
+      timestamp: now,
       files: uploadedFiles,
     };
 
-    setMessages([...messages, newMessageObj]);
+    // Сохраняем сообщение в localStorage
+    const updatedMessages = [...messages, newMessageObj];
+    const allUpdatedMessages = { ...allMessages, [topicId]: updatedMessages };
+    setMessages(updatedMessages);
+    setAllMessages(allUpdatedMessages);
+    saveMessages(allUpdatedMessages);
+    
+    // Обновляем информацию о теме (количество сообщений и последняя активность)
+    if (topic && topic.categoryId) {
+      const updatedTopics = { ...allTopics };
+      const categoryTopics = updatedTopics[topic.categoryId];
+      
+      if (categoryTopics) {
+        const topicIndex = categoryTopics.findIndex(t => t.id === topicId);
+        if (topicIndex >= 0) {
+          updatedTopics[topic.categoryId][topicIndex] = {
+            ...updatedTopics[topic.categoryId][topicIndex],
+            messageCount: updatedMessages.length,
+            lastActive: now,
+          };
+          
+          setAllTopics(updatedTopics);
+          saveTopics(updatedTopics);
+        }
+      }
+    }
+
     setNewMessage("");
     setUploadedFiles([]);
+  };
+  
+  const handleDeleteTopic = () => {
+    if (!topic || !topic.categoryId) return;
+    
+    // Удаляем тему
+    const updatedTopics = { ...allTopics };
+    updatedTopics[topic.categoryId] = updatedTopics[topic.categoryId].filter(t => t.id !== topicId);
+    setAllTopics(updatedTopics);
+    saveTopics(updatedTopics);
+    
+    // Удаляем сообщения
+    const updatedMessages = { ...allMessages };
+    delete updatedMessages[topicId];
+    setAllMessages(updatedMessages);
+    saveMessages(updatedMessages);
+    
+    // Возвращаемся в категорию
+    navigate(`/category/${topic.categoryId}`);
   };
 
   if (!topic) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Тема не найдена</h1>
-          <Button as={Link} to="/" variant="outline">
-            Вернуться на главную
-          </Button>
+          <h1 className="text-2xl font-bold mb-4">Загрузка...</h1>
         </div>
       </div>
     );
@@ -192,7 +337,61 @@ const TopicPage = () => {
           <Link to={`/category/${topic.categoryId}`} className="text-primary hover:underline mb-2 inline-block">
             ← Назад к категории {topic.categoryName}
           </Link>
-          <h1 className="text-2xl font-bold text-primary">{topic.title}</h1>
+          <div className="flex justify-between items-start">
+            <h1 className="text-2xl font-bold text-primary">{topic.title}</h1>
+            {isTopicOwner && (
+              <AlertDialog 
+                open={deleteConfirmationOpen} 
+                onOpenChange={setDeleteConfirmationOpen}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="flex items-center gap-1"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Удалить тему</span>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Это действие удалит тему и все сообщения в ней. Это действие нельзя отменить.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteTopic}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Удалить
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>Посетителей: {stats.visitorCount}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <MessageSquare className="h-4 w-4" />
+              <span>Просмотров: {stats.viewCount}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <User className="h-4 w-4" />
+              <span>Автор: {topic.author}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>Создано: {formatDate(topic.createdAt || topic.lastActive)}</span>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6 mb-8">
@@ -257,6 +456,8 @@ const TopicPage = () => {
               </CardContent>
             </Card>
           )}
+          
+          <div ref={messagesEndRef} />
         </div>
 
         <Card className="bg-card border-border">

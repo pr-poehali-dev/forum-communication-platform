@@ -1,4 +1,5 @@
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -8,87 +9,91 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, MessageSquare, User } from "lucide-react";
+import { Clock, MessageSquare, User, Plus } from "lucide-react";
 import Logo from "@/components/ui/logo";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Моковые данные для категорий
 const categoryData = {
   general: {
     id: "general",
-    name: "Общее обсуждение",
-    description: "Обсуждение любых тем и новостей",
+    name: "Взломы сайтов",
+    description: "Обсуждение техник проникновения и защиты веб-ресурсов",
   },
   technology: {
     id: "technology",
-    name: "Технологии",
-    description: "Обсуждение гаджетов, программ и IT-новостей",
+    name: "Вирусописательство",
+    description: "Разработка вредоносного ПО и способы защиты от него",
   },
   entertainment: {
     id: "entertainment",
-    name: "Развлечения",
-    description: "Фильмы, игры, музыка и другие развлечения",
+    name: "СМС бомбинг",
+    description: "Обсуждение методов рассылки СМС и защита от спама",
   },
 };
 
-// Моковые данные для тем
-const topicsData = {
-  general: [
-    {
-      id: "1",
-      title: "Приветственная тема",
-      description: "Добро пожаловать на форум! Представьтесь сообществу.",
-      author: "Аноним",
-      lastActive: "2025-04-25T14:30:00",
-      messageCount: 12,
-    },
-    {
-      id: "2",
-      title: "Последние новости",
-      description: "Обсуждение новостей и актуальных событий.",
-      author: "Аноним",
-      lastActive: "2025-04-26T09:15:00",
-      messageCount: 28,
-    },
-  ],
-  technology: [
-    {
-      id: "3",
-      title: "Новые телефоны 2025",
-      description: "Обсуждение новинок мобильной техники этого года.",
-      author: "Аноним",
-      lastActive: "2025-04-24T18:45:00",
-      messageCount: 34,
-    },
-    {
-      id: "4",
-      title: "Язык программирования Rust",
-      description: "Делимся опытом использования Rust в проектах.",
-      author: "Аноним",
-      lastActive: "2025-04-25T11:20:00",
-      messageCount: 15,
-    },
-  ],
-  entertainment: [
-    {
-      id: "5",
-      title: "Лучшие фильмы 2025",
-      description: "Какие фильмы этого года вам понравились больше всего?",
-      author: "Аноним",
-      lastActive: "2025-04-26T10:30:00",
-      messageCount: 22,
-    },
-    {
-      id: "6",
-      title: "Новые игры на ПК",
-      description: "Обсуждение новых компьютерных игр и их особенностей.",
-      author: "Аноним",
-      lastActive: "2025-04-23T16:10:00",
-      messageCount: 41,
-    },
-  ],
+// Локальное хранилище для тем
+const getStoredTopics = () => {
+  try {
+    const storedTopics = localStorage.getItem('2hacker_topics');
+    return storedTopics ? JSON.parse(storedTopics) : {};
+  } catch (e) {
+    console.error('Ошибка при получении тем из хранилища:', e);
+    return {};
+  }
 };
 
-const formatDate = (dateString: string) => {
+const saveTopics = (topics) => {
+  try {
+    localStorage.setItem('2hacker_topics', JSON.stringify(topics));
+  } catch (e) {
+    console.error('Ошибка при сохранении тем в хранилище:', e);
+  }
+};
+
+// Система статистики посетителей
+const addViewToCategory = (categoryId) => {
+  try {
+    const now = new Date().toISOString();
+    const stats = JSON.parse(localStorage.getItem('2hacker_stats') || '{}');
+    
+    if (!stats.categories) {
+      stats.categories = {};
+    }
+    
+    if (!stats.categories[categoryId]) {
+      stats.categories[categoryId] = { views: 0, visitors: [], lastVisit: now };
+    }
+    
+    // Добавляем просмотр
+    stats.categories[categoryId].views += 1;
+    
+    // Генерируем уникальный ID для посетителя если его нет
+    const visitorId = localStorage.getItem('2hacker_visitor_id') || 
+      `visitor_${Math.random().toString(36).substring(2, 9)}`;
+    localStorage.setItem('2hacker_visitor_id', visitorId);
+    
+    // Добавляем посетителя если его нет в списке
+    if (!stats.categories[categoryId].visitors.includes(visitorId)) {
+      stats.categories[categoryId].visitors.push(visitorId);
+    }
+    
+    stats.categories[categoryId].lastVisit = now;
+    
+    localStorage.setItem('2hacker_stats', JSON.stringify(stats));
+    return {
+      viewCount: stats.categories[categoryId].views,
+      visitorCount: stats.categories[categoryId].visitors.length
+    };
+  } catch (e) {
+    console.error('Ошибка при обновлении статистики:', e);
+    return { viewCount: 0, visitorCount: 0 };
+  }
+};
+
+const formatDate = (dateString) => {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
@@ -100,9 +105,68 @@ const formatDate = (dateString: string) => {
 };
 
 const CategoryPage = () => {
-  const { categoryId } = useParams<{ categoryId: string }>();
-  const category = categoryId ? categoryData[categoryId as keyof typeof categoryData] : null;
-  const topics = categoryId ? topicsData[categoryId as keyof typeof topicsData] || [] : [];
+  const { categoryId } = useParams();
+  const navigate = useNavigate();
+  const category = categoryId ? categoryData[categoryId] : null;
+  
+  const [allTopics, setAllTopics] = useState(getStoredTopics());
+  const [topics, setTopics] = useState([]);
+  const [newTopicTitle, setNewTopicTitle] = useState("");
+  const [newTopicDescription, setNewTopicDescription] = useState("");
+  const [stats, setStats] = useState({ viewCount: 0, visitorCount: 0 });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  useEffect(() => {
+    // Обновляем статистику при загрузке страницы
+    if (categoryId) {
+      const currentStats = addViewToCategory(categoryId);
+      setStats(currentStats);
+      
+      // Получаем темы для текущей категории
+      const storedTopics = getStoredTopics();
+      if (storedTopics[categoryId]) {
+        // Сортируем темы по дате последнего сообщения (от новых к старым)
+        const sortedTopics = [...storedTopics[categoryId]].sort((a, b) => 
+          new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime()
+        );
+        setTopics(sortedTopics);
+      } else {
+        setTopics([]);
+      }
+    }
+  }, [categoryId]);
+
+  const handleCreateTopic = () => {
+    if (!newTopicTitle.trim()) return;
+    
+    const newTopic = {
+      id: `${categoryId}_${Date.now()}`,
+      title: newTopicTitle,
+      description: newTopicDescription,
+      author: localStorage.getItem('2hacker_nickname') || "Аноним",
+      lastActive: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      messageCount: 0,
+    };
+    
+    const updatedTopics = { ...allTopics };
+    if (!updatedTopics[categoryId]) {
+      updatedTopics[categoryId] = [];
+    }
+    
+    updatedTopics[categoryId] = [newTopic, ...updatedTopics[categoryId]];
+    
+    setAllTopics(updatedTopics);
+    setTopics(updatedTopics[categoryId]);
+    saveTopics(updatedTopics);
+    
+    setNewTopicTitle("");
+    setNewTopicDescription("");
+    setIsDialogOpen(false);
+    
+    // Перенаправляем на страницу новой темы
+    navigate(`/topic/${newTopic.id}`);
+  };
 
   if (!category) {
     return (
@@ -138,14 +202,76 @@ const CategoryPage = () => {
             ← Назад к категориям
           </Link>
           <h1 className="text-3xl font-bold text-primary">{category.name}</h1>
-          <p className="text-muted-foreground">{category.description}</p>
+          <p className="text-muted-foreground mb-2">{category.description}</p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>Посетителей: {stats.visitorCount}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <MessageSquare className="h-4 w-4" />
+              <span>Просмотров: {stats.viewCount}</span>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Темы в этой категории</h2>
-          <Button as={Link} to={`/create-topic?category=${categoryId}`} className="bg-primary hover:bg-primary/90">
-            Создать новую тему
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90">
+                <Plus className="mr-2 h-4 w-4" />
+                Создать тему
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Создание новой темы</DialogTitle>
+                <DialogDescription>
+                  Заполните необходимые поля для создания новой темы.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <label htmlFor="title" className="text-sm font-medium">
+                    Название темы
+                  </label>
+                  <Input
+                    id="title"
+                    placeholder="Введите название темы"
+                    value={newTopicTitle}
+                    onChange={(e) => setNewTopicTitle(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="description" className="text-sm font-medium">
+                    Описание (необязательно)
+                  </label>
+                  <Textarea
+                    id="description"
+                    placeholder="Добавьте краткое описание темы"
+                    value={newTopicDescription}
+                    onChange={(e) => setNewTopicDescription(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleCreateTopic}
+                  disabled={!newTopicTitle.trim()}
+                >
+                  Создать тему
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="space-y-4">
@@ -185,8 +311,7 @@ const CategoryPage = () => {
               <CardContent className="p-6 text-center">
                 <p className="text-muted-foreground">В этой категории пока нет тем.</p>
                 <Button 
-                  as={Link} 
-                  to={`/create-topic?category=${categoryId}`} 
+                  onClick={() => setIsDialogOpen(true)}
                   className="mt-4 bg-primary hover:bg-primary/90"
                 >
                   Создать первую тему

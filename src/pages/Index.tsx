@@ -8,22 +8,22 @@ import Logo from "@/components/ui/logo";
 const forumCategories = [
   {
     id: "general",
-    name: "Общее обсуждение",
-    description: "Обсуждение любых тем и новостей",
+    name: "Взломы сайтов",
+    description: "Обсуждение техник проникновения и защиты веб-ресурсов",
     messageCount: 128,
     userCount: 45,
   },
   {
     id: "technology",
-    name: "Технологии",
-    description: "Обсуждение гаджетов, программ и IT-новостей",
+    name: "Вирусописательство",
+    description: "Разработка вредоносного ПО и способы защиты от него",
     messageCount: 93,
     userCount: 28,
   },
   {
     id: "entertainment",
-    name: "Развлечения",
-    description: "Фильмы, игры, музыка и другие развлечения",
+    name: "СМС бомбинг",
+    description: "Обсуждение методов рассылки СМС и защита от спама",
     messageCount: 76,
     userCount: 32,
   },
