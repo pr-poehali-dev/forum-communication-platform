@@ -1,118 +1,135 @@
-
-import { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, FileIcon, ImageIcon, VideoIcon, FileTextIcon } from "lucide-react";
+import { FileImage, FileVideo, Upload, File } from "lucide-react";
 
-type FileUploadProps = {
-  files: File[];
-  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  maxFiles?: number;
-  maxSizeMB?: number;
-  allowedTypes?: string[];
+type MessageFile = {
+  name: string;
+  url: string;
+  type: "image" | "video" | "file";
 };
 
-export const FileUpload = ({
-  files,
-  setFiles,
-  maxFiles = 5,
-  maxSizeMB = 10,
-  allowedTypes,
-}: FileUploadProps) => {
-  const [error, setError] = useState<string | null>(null);
+interface FileUploadProps {
+  onUpload: (files: MessageFile[]) => void;
+}
+
+const FileUpload: React.FC<FileUploadProps> = ({ onUpload }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
-    if (files.length + selectedFiles.length > maxFiles) {
-      setError(`Максимальное количество файлов: ${maxFiles}`);
-      return;
-    }
+    setIsLoading(true);
     
-    const oversizedFiles = selectedFiles.filter(
-      (file) => file.size > maxSizeMB * 1024 * 1024
-    );
+    const uploadedFiles: MessageFile[] = [];
     
-    if (oversizedFiles.length > 0) {
-      setError(`Максимальный размер файла: ${maxSizeMB}MB`);
-      return;
-    }
-    
-    if (allowedTypes) {
-      const invalidFiles = selectedFiles.filter(
-        (file) => !allowedTypes.includes(file.type)
-      );
+    Array.from(files).forEach((file) => {
+      // В реальном приложении здесь был бы запрос на сервер для загрузки файла
+      // Здесь мы просто создаем локальный URL для демонстрации
+      const fileUrl = URL.createObjectURL(file);
       
-      if (invalidFiles.length > 0) {
-        setError(`Допустимые типы файлов: ${allowedTypes.join(", ")}`);
-        return;
+      let fileType: "image" | "video" | "file" = "file";
+      
+      if (file.type.startsWith("image/")) {
+        fileType = "image";
+      } else if (file.type.startsWith("video/")) {
+        fileType = "video";
       }
-    }
+      
+      uploadedFiles.push({
+        name: file.name,
+        url: fileUrl,
+        type: fileType,
+      });
+    });
     
-    setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
-    setError(null);
-    e.target.value = ""; // Clear input
+    // Имитируем задержку загрузки
+    setTimeout(() => {
+      onUpload(uploadedFiles);
+      setIsLoading(false);
+      // Сбрасываем value, чтобы можно было загрузить тот же файл повторно
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }, 500);
   };
 
-  const removeFile = (index: number) => {
-    setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
-  };
-
-  const getFileIcon = (file: File) => {
-    if (file.type.startsWith("image/")) {
-      return <ImageIcon className="h-5 w-5 text-blue-500" />;
-    } else if (file.type.startsWith("video/")) {
-      return <VideoIcon className="h-5 w-5 text-red-500" />;
-    } else if (file.type.startsWith("text/")) {
-      return <FileTextIcon className="h-5 w-5 text-yellow-500" />;
-    } else {
-      return <FileIcon className="h-5 w-5 text-gray-500" />;
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {files.map((file, index) => (
-          <div
-            key={index}
-            className="flex items-center gap-2 p-2 border rounded-md bg-gray-50"
+    <div>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        multiple
+        accept="image/*,video/*,application/*"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          onClick={triggerFileInput}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1"
+          disabled={isLoading}
+        >
+          <Upload className="h-4 w-4" />
+          <span>{isLoading ? "Загрузка..." : "Прикрепить файл"}</span>
+        </Button>
+        
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            onClick={triggerFileInput}
+            variant="ghost"
+            size="icon"
+            className="text-primary"
+            disabled={isLoading}
+            title="Изображение"
           >
-            {getFileIcon(file)}
-            <span className="text-sm truncate max-w-[150px]">{file.name}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => removeFile(index)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <FileImage className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            type="button"
+            onClick={triggerFileInput}
+            variant="ghost"
+            size="icon"
+            className="text-primary"
+            disabled={isLoading}
+            title="Видео"
+          >
+            <FileVideo className="h-4 w-4" />
+          </Button>
+          
+          <Button
+            type="button"
+            onClick={triggerFileInput}
+            variant="ghost"
+            size="icon"
+            className="text-primary"
+            disabled={isLoading}
+            title="Другой файл"
+          >
+            <File className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        {isLoading && (
+          <div className="ml-2 text-sm text-muted-foreground animate-pulse">
+            Загрузка файлов...
           </div>
-        ))}
-      </div>
-
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
-      <div className="flex items-center justify-center w-full">
-        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <FileIcon className="w-8 h-8 mb-2 text-gray-500" />
-            <p className="mb-2 text-sm text-gray-500">
-              <span className="font-medium">Нажмите для загрузки</span> или перетащите файлы сюда
-            </p>
-            <p className="text-xs text-gray-500">
-              До {maxFiles} файлов (макс. {maxSizeMB}MB каждый)
-            </p>
-          </div>
-          <input
-            type="file"
-            className="hidden"
-            multiple
-            onChange={handleFileChange}
-          />
-        </label>
+        )}
       </div>
     </div>
   );
 };
+
+export default FileUpload;

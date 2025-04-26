@@ -1,129 +1,166 @@
-
 import { Link, useParams } from "react-router-dom";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, MessageSquare, User } from "lucide-react";
+import { Clock, MessageSquare, User } from "lucide-react";
+import Logo from "@/components/ui/logo";
 
-// Мок-данные для тем форума
-const forumTopics = {
-  general: [
-    { 
-      id: "gen1", 
-      title: "Приветственная тема", 
-      author: "Гость1234", 
-      lastActive: "2 часа назад", 
-      replies: 14,
-      preview: "Добро пожаловать на наш форум! Здесь мы обсуждаем разные темы и делимся..."
-    },
-    { 
-      id: "gen2", 
-      title: "Новости сегодня", 
-      author: "Новостник", 
-      lastActive: "30 минут назад", 
-      replies: 28,
-      preview: "Обсуждаем свежие новости за сегодня. Что больше всего вас заинтересовало?"
-    },
-    { 
-      id: "gen3", 
-      title: "Вопрос к сообществу", 
-      author: "Любознательный", 
-      lastActive: "1 день назад", 
-      replies: 7,
-      preview: "Хотел спросить у всех, как вы считаете, стоит ли..."
-    }
-  ],
-  technology: [
-    { 
-      id: "tech1", 
-      title: "Новые технологии 2025", 
-      author: "Технарь", 
-      lastActive: "5 часов назад", 
-      replies: 23,
-      preview: "Какие технологические новинки вы ждете в этом году? Я лично..."
-    },
-    { 
-      id: "tech2", 
-      title: "Помогите с выбором ноутбука", 
-      author: "Неопытный", 
-      lastActive: "1 час назад", 
-      replies: 19,
-      preview: "Ищу ноутбук для работы и немного игр, бюджет до..."
-    }
-  ],
-  entertainment: [
-    { 
-      id: "ent1", 
-      title: "Новые фильмы апреля", 
-      author: "Киноман", 
-      lastActive: "3 часа назад", 
-      replies: 17,
-      preview: "В этом месяце вышло несколько интересных премьер. Кто что смотрел?"
-    },
-    { 
-      id: "ent2", 
-      title: "Обсуждаем последний сезон сериала", 
-      author: "Сериаломан", 
-      lastActive: "2 дня назад", 
-      replies: 32,
-      preview: "Как вам финал? По-моему, сценаристы совсем..."
-    },
-    { 
-      id: "ent3", 
-      title: "Музыкальные новинки", 
-      author: "МеломанXXX", 
-      lastActive: "8 часов назад", 
-      replies: 9,
-      preview: "Делюсь новыми треками, которые точно стоит послушать..."
-    }
-  ]
+// Моковые данные для категорий
+const categoryData = {
+  general: {
+    id: "general",
+    name: "Общее обсуждение",
+    description: "Обсуждение любых тем и новостей",
+  },
+  technology: {
+    id: "technology",
+    name: "Технологии",
+    description: "Обсуждение гаджетов, программ и IT-новостей",
+  },
+  entertainment: {
+    id: "entertainment",
+    name: "Развлечения",
+    description: "Фильмы, игры, музыка и другие развлечения",
+  },
 };
 
-const categoryNames = {
-  general: "Общее обсуждение",
-  technology: "Технологии",
-  entertainment: "Развлечения"
+// Моковые данные для тем
+const topicsData = {
+  general: [
+    {
+      id: "1",
+      title: "Приветственная тема",
+      description: "Добро пожаловать на форум! Представьтесь сообществу.",
+      author: "Аноним",
+      lastActive: "2025-04-25T14:30:00",
+      messageCount: 12,
+    },
+    {
+      id: "2",
+      title: "Последние новости",
+      description: "Обсуждение новостей и актуальных событий.",
+      author: "Аноним",
+      lastActive: "2025-04-26T09:15:00",
+      messageCount: 28,
+    },
+  ],
+  technology: [
+    {
+      id: "3",
+      title: "Новые телефоны 2025",
+      description: "Обсуждение новинок мобильной техники этого года.",
+      author: "Аноним",
+      lastActive: "2025-04-24T18:45:00",
+      messageCount: 34,
+    },
+    {
+      id: "4",
+      title: "Язык программирования Rust",
+      description: "Делимся опытом использования Rust в проектах.",
+      author: "Аноним",
+      lastActive: "2025-04-25T11:20:00",
+      messageCount: 15,
+    },
+  ],
+  entertainment: [
+    {
+      id: "5",
+      title: "Лучшие фильмы 2025",
+      description: "Какие фильмы этого года вам понравились больше всего?",
+      author: "Аноним",
+      lastActive: "2025-04-26T10:30:00",
+      messageCount: 22,
+    },
+    {
+      id: "6",
+      title: "Новые игры на ПК",
+      description: "Обсуждение новых компьютерных игр и их особенностей.",
+      author: "Аноним",
+      lastActive: "2025-04-23T16:10:00",
+      messageCount: 41,
+    },
+  ],
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
 };
 
 const CategoryPage = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
-  const topics = categoryId ? forumTopics[categoryId as keyof typeof forumTopics] || [] : [];
-  const categoryName = categoryId ? categoryNames[categoryId as keyof typeof categoryNames] || "Категория" : "Категория";
+  const category = categoryId ? categoryData[categoryId as keyof typeof categoryData] : null;
+  const topics = categoryId ? topicsData[categoryId as keyof typeof topicsData] || [] : [];
+
+  if (!category) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Категория не найдена</h1>
+          <Button as={Link} to="/" variant="outline">
+            Вернуться на главную
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-primary text-primary-foreground py-6">
+    <div className="min-h-screen bg-background">
+      <header className="bg-secondary text-secondary-foreground py-6 border-b border-border">
         <div className="container mx-auto px-4">
-          <Link to="/" className="flex items-center gap-2 text-primary-foreground mb-2 hover:underline">
-            <ArrowLeft className="h-4 w-4" />
-            На главную
-          </Link>
-          <h1 className="text-3xl font-bold">{categoryName}</h1>
+          <div className="flex items-center">
+            <Link to="/">
+              <Logo size={48} className="mb-2" />
+            </Link>
+            <div className="ml-4">
+              <p className="text-lg opacity-90">Общайтесь свободно, без регистрации</p>
+            </div>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Link to="/" className="text-primary hover:underline mb-2 inline-block">
+            ← Назад к категориям
+          </Link>
+          <h1 className="text-3xl font-bold text-primary">{category.name}</h1>
+          <p className="text-muted-foreground">{category.description}</p>
+        </div>
+
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Темы для обсуждения</h2>
-          <Button as={Link} to={`/category/${categoryId}/create`} className="bg-primary hover:bg-primary/90">
+          <h2 className="text-2xl font-bold">Темы в этой категории</h2>
+          <Button as={Link} to={`/create-topic?category=${categoryId}`} className="bg-primary hover:bg-primary/90">
             Создать новую тему
           </Button>
         </div>
 
-        {topics.length > 0 ? (
-          <div className="space-y-4">
-            {topics.map(topic => (
-              <Card key={topic.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xl">
-                    <Link to={`/topic/${topic.id}`} className="hover:text-primary hover:underline">
-                      {topic.title}
-                    </Link>
-                  </CardTitle>
+        <div className="space-y-4">
+          {topics.map((topic) => (
+            <Link
+              key={topic.id}
+              to={`/topic/${topic.id}`}
+              className="block"
+            >
+              <Card className="w-full hover:border-primary/50 transition-colors bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-primary">{topic.title}</CardTitle>
+                  <CardDescription>{topic.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="pb-2">
-                  <p className="text-gray-600 line-clamp-2">{topic.preview}</p>
-                </CardContent>
-                <CardFooter className="flex justify-between text-sm text-gray-500">
+                <CardFooter className="flex justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1">
                       <User className="h-4 w-4" />
@@ -131,31 +168,41 @@ const CategoryPage = () => {
                     </div>
                     <div className="flex items-center gap-1">
                       <MessageSquare className="h-4 w-4" />
-                      <span>{topic.replies} ответов</span>
+                      <span>{topic.messageCount}</span>
                     </div>
                   </div>
-                  <div className="text-gray-500">
-                    Последняя активность: {topic.lastActive}
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>{formatDate(topic.lastActive)}</span>
                   </div>
                 </CardFooter>
               </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-medium text-gray-600 mb-2">Нет тем для обсуждения</h3>
-            <p className="text-gray-500 mb-6">Будьте первым, кто создаст тему в этой категории</p>
-            <Button as={Link} to={`/category/${categoryId}/create`}>
-              Создать тему
-            </Button>
-          </div>
-        )}
+            </Link>
+          ))}
+
+          {topics.length === 0 && (
+            <Card className="w-full bg-card border-border">
+              <CardContent className="p-6 text-center">
+                <p className="text-muted-foreground">В этой категории пока нет тем.</p>
+                <Button 
+                  as={Link} 
+                  to={`/create-topic?category=${categoryId}`} 
+                  className="mt-4 bg-primary hover:bg-primary/90"
+                >
+                  Создать первую тему
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </main>
 
-      <footer className="bg-gray-100 py-6 mt-8">
-        <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>© 2025 ОткрытыйФорум - Общение без регистрации</p>
+      <footer className="bg-secondary py-6 mt-8 border-t border-border">
+        <div className="container mx-auto px-4 text-center text-secondary-foreground">
+          <div className="flex items-center justify-center mb-2">
+            <Logo size={32} />
+          </div>
+          <p>© 2025 2Hacker - Общение без регистрации</p>
         </div>
       </footer>
     </div>
