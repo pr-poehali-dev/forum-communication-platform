@@ -9,7 +9,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, MessageSquare, User, Plus } from "lucide-react";
+import { Clock, MessageSquare, User, Plus, Users } from "lucide-react";
 import Logo from "@/components/ui/logo";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
